@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
   <title>Estrattore di Numeri Casuali</title>
   <style>
     :root {
@@ -339,7 +340,7 @@
 
       <label class="field-quant">
         <span>Quanti estrarre?</span>
-        <input id="quantity" type="number" min="1" value="1" inputmode="numeric">
+        <input id="quantity" type="number" min="1" max="500" value="1" inputmode="numeric">
       </label>
 
       <label class="field-full">
@@ -396,38 +397,61 @@
     const resultsContainer = document.querySelector("#results");
     const historyContainer = document.querySelector("#history-chips");
 
+    // Limiti di sicurezza
+    const MAX_TOTAL_ITEMS = 100000;
+    const MAX_QUANT = 500;
+
     // Stato dell'applicazione
     let availablePool = [];
     let extractedHistory = [];
     let lastConfigHash = "";
 
-    // Funzione per interpretare i numeri da escludere
-    function parseExcluded(text) {
+    // Generatore di numeri casuali crittograficamente sicuro (CSPRNG) con rejection sampling (evita modulo bias)
+    function getSecureRandomInt(max) {
+      if (max <= 1) return 0;
+      const array = new Uint32Array(1);
+      const maxUint32 = 0x100000000;
+      const limit = maxUint32 - (maxUint32 % max);
+      let rand;
+      do {
+        window.crypto.getRandomValues(array);
+        rand = array[0];
+      } while (rand >= limit);
+      return rand % max;
+    }
+
+    // Funzione per interpretare i numeri da escludere in modo sicuro e resiliente
+    function parseExcluded(text, min, max) {
       const excluded = new Set();
       if (!text || !text.trim()) return excluded;
 
       const tokens = text.split(/[,;\s]+/);
       for (const token of tokens) {
-        if (!token.trim()) continue;
+        const trimmed = token.trim();
+        if (!trimmed) continue;
 
-        // Supporto per range come "20-25"
-        if (token.includes("-")) {
-          const parts = token.split("-");
-          if (parts.length === 2) {
-            const start = parseInt(parts[0], 10);
-            const end = parseInt(parts[1], 10);
-            if (!isNaN(start) && !isNaN(end)) {
-              const lower = Math.min(start, end);
-              const upper = Math.max(start, end);
-              for (let i = lower; i <= upper; i++) {
-                excluded.add(i);
-              }
+        // Supporto per intervalli tipo "20-25" o numeri negativi "-10--5"
+        const rangeMatch = trimmed.match(/^(-?\d+)\s*-\s*(-?\d+)$/);
+        if (rangeMatch) {
+          const start = parseInt(rangeMatch[1], 10);
+          const end = parseInt(rangeMatch[2], 10);
+          if (!isNaN(start) && !isNaN(end)) {
+            const lower = Math.min(start, end);
+            const upper = Math.max(start, end);
+            // Protezione DoS: consideriamo solo i valori che si sovrappongono all'intervallo [min, max]
+            const effectiveLower = min !== undefined ? Math.max(lower, min) : lower;
+            const effectiveUpper = max !== undefined ? Math.min(upper, max) : upper;
+            if (effectiveUpper - effectiveLower > MAX_TOTAL_ITEMS) {
               continue;
             }
+            for (let i = effectiveLower; i <= effectiveUpper; i++) {
+              excluded.add(i);
+            }
+            continue;
           }
         }
 
-        const num = parseInt(token, 10);
+        const num = parseInt(trimmed, 10);
         if (!isNaN(num)) {
           excluded.add(num);
         }
@@ -462,13 +486,15 @@
       }
 
       const totalItems = max - min + 1;
-      if (totalItems > 100000) {
+      if (totalItems > MAX_TOTAL_ITEMS) {
         statusEl.className = "status";
-        statusEl.textContent = "Intervallo troppo ampio (massimo 100.000 numeri).";
+        statusEl.textContent = `Intervallo troppo ampio (massimo ${MAX_TOTAL_ITEMS.toLocaleString()} numeri).`;
+        poolCountEl.textContent = "0";
+        availablePool = [];
         return false;
       }
 
-      const excluded = parseExcluded(excludedInput.value);
+      const excluded = parseExcluded(excludedInput.value, min, max);
       availablePool = [];
 
       for (let i = min; i <= max; i++) {
@@ -478,7 +504,6 @@
       }
 
       poolCountEl.textContent = availablePool.length;
-      lastConfigHash = getConfigHash();
       return true;
     }
 
@@ -487,6 +512,8 @@
       extractedHistory = [];
       const ok = initPool();
       if (!ok) return;
+
+      lastConfigHash = getConfigHash();
 
       if (!keepNotice) {
         statusEl.className = "status info";
@@ -516,17 +543,22 @@
     function drawNumbers() {
       statusEl.textContent = "";
 
-      // Se la configurazione dell'intervallo o delle esclusioni è cambiata, reinizializziamo
+      // Se la configurazione dell'intervallo o delle esclusioni è cambiata, resettiamo lo storico
       if (getConfigHash() !== lastConfigHash) {
-        extractedHistory = [];
-        if (!initPool()) return;
-        updateHistoryUI();
+        resetAll(true);
+        if (availablePool.length === 0) return;
       }
 
       const quant = parseInt(quantInput.value, 10);
       if (isNaN(quant) || quant < 1) {
         statusEl.className = "status";
         statusEl.textContent = "Inserisci una quantità da estrarre valida (almeno 1).";
+        return;
+      }
+
+      if (quant > MAX_QUANT) {
+        statusEl.className = "status";
+        statusEl.textContent = `La quantità massima estraibile in una volta è ${MAX_QUANT}.`;
         return;
       }
 
@@ -548,7 +580,7 @@
 
         const currentDraw = [];
         for (let i = 0; i < countToExtract; i++) {
-          const randomIndex = Math.floor(Math.random() * availablePool.length);
+          const randomIndex = getSecureRandomInt(availablePool.length);
           const chosen = availablePool.splice(randomIndex, 1)[0];
           currentDraw.push(chosen);
           extractedHistory.push(chosen);
@@ -562,7 +594,7 @@
         // Modalità con ripetizione libera (ogni estrazione può pescare da tutti i numeri validi)
         const min = parseInt(minInput.value, 10);
         const max = parseInt(maxInput.value, 10);
-        const excluded = parseExcluded(excludedInput.value);
+        const excluded = parseExcluded(excludedInput.value, min, max);
         const fullValidList = [];
 
         for (let i = min; i <= max; i++) {
@@ -577,7 +609,8 @@
 
         const currentDraw = [];
         for (let i = 0; i < quant; i++) {
-          const rand = fullValidList[Math.floor(Math.random() * fullValidList.length)];
+          const randomIndex = getSecureRandomInt(fullValidList.length);
+          const rand = fullValidList[randomIndex];
           currentDraw.push(rand);
           extractedHistory.push(rand);
         }
@@ -604,9 +637,15 @@
     drawButton.addEventListener("click", drawNumbers);
     resetButton.addEventListener("click", () => resetAll(false));
 
+    // Quando cambiano gli input, aggiorniamo il contatore e allineiamo lo stato
     [minInput, maxInput, excludedInput].forEach(input => {
       input.addEventListener("input", () => {
-        initPool();
+        if (extractedHistory.length > 0) {
+          resetAll(true);
+        } else {
+          initPool();
+          lastConfigHash = getConfigHash();
+        }
       });
     });
 
@@ -621,8 +660,7 @@
     });
 
     // Avvio iniziale
-    initPool();
-    updateHistoryUI();
+    resetAll(true);
   </script>
 </body>
 </html>
