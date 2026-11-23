@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estrattore di Numeri Casuali</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080b14;
+      --panel: rgba(18, 23, 38, 0.9);
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #f7f8ff;
+      --muted: #a9adc0;
+      --accent: #9ee6cf;
+      --accent-strong: #69d7b5;
+      --danger: #ff8585;
+      --card-bg: rgba(255, 255, 255, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(96, 211, 181, 0.14), transparent 28rem),
+        radial-gradient(circle at 85% 90%, rgba(117, 112, 211, 0.14), transparent 30rem),
+        var(--bg);
+    }
+
+    .app {
+      width: min(720px, 100%);
+      padding: 34px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--panel);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(18px);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      margin: 12px 0 24px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.98rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .field-full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      position: relative;
+      display: block;
+    }
+
+    label span {
+      position: absolute;
+      left: 14px;
+      top: 9px;
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      pointer-events: none;
+    }
+
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      height: 64px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 24px 14px 6px;
+      outline: none;
+      background: var(--card-bg);
+      color: var(--text);
+      font: inherit;
+      font-size: 1.1rem;
+      font-weight: 700;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input::placeholder {
+      color: rgba(255, 255, 255, 0.25);
+      font-weight: 400;
+      font-size: 0.92rem;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(158, 230, 207, 0.12);
+    }
+
+    .options-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 2px 14px;
+      flex-wrap: wrap;
+    }
+
+    .checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--muted);
+      user-select: none;
+    }
+
+    .checkbox-label input {
+      accent-color: var(--accent);
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .stats-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+    }
+
+    .stats-badge strong {
+      color: var(--accent);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 16px;
+      height: 56px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 160ms ease;
+    }
+
+    .btn-draw {
+      background: var(--accent);
+      color: #071510;
+      font-size: 1.05rem;
+    }
+
+    .btn-draw:hover {
+      background: var(--accent-strong);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(110, 222, 187, 0.25);
+    }
+
+    .btn-reset {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      padding: 0 20px;
+      border: 1px solid var(--line);
+    }
+
+    .btn-reset:hover {
+      background: rgba(255, 255, 255, 0.14);
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .status {
+      min-height: 24px;
+      margin: 14px 2px 4px;
+      color: var(--danger);
+      font-size: 0.92rem;
+      font-weight: 500;
+    }
+
+    .status.info {
+      color: var(--accent);
+    }
+
+    .section-title {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 20px 0 10px;
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .number {
+      display: grid;
+      place-items: center;
+      aspect-ratio: 1;
+      border: 1px solid rgba(158, 230, 207, 0.35);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(158, 230, 207, 0.12), rgba(255, 255, 255, 0.04));
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-weight: 850;
+      color: #ffffff;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+      animation: appear 300ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+    }
+
+    .history-container {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin-top: 10px;
+    }
+
+    .history-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+
+    .history-chip {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--line);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .empty-history {
+      color: rgba(255, 255, 255, 0.35);
+      font-size: 0.88rem;
+      font-style: italic;
+    }
+
+    @keyframes appear {
+      from {
+        opacity: 0;
+        transform: scale(0.65) translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .app {
+        padding: 22px 18px;
+        border-radius: 22px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .field-quant {
+        grid-column: 1 / -1;
+      }
+
+      .actions {
+        grid-template-columns: 1fr;
+      }
+
+      .results {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <p class="eyebrow">Generatore Casuale</p>
+    <h1>Estrattore Numeri</h1>
+    <p class="subtitle">Personalizza l'intervallo, escludi i numeri indesiderati ed estrai senza ripetizioni.</p>
+
+    <div class="form-grid">
+      <label>
+        <span>Da (Min)</span>
+        <input id="range-min" type="number" value="1" inputmode="numeric">
+      </label>
+
+      <label>
+        <span>A (Max)</span>
+        <input id="range-max" type="number" value="90" inputmode="numeric">
+      </label>
+
+      <label class="field-quant">
+        <span>Quanti estrarre?</span>
+        <input id="quantity" type="number" min="1" value="1" inputmode="numeric">
+      </label>
+
+      <label class="field-full">
+        <span>Escludi numeri (es. 3, 7, 13 o 20-25)</span>
+        <input id="excluded-input" type="text" placeholder="Es: 13, 17, 20-25 (opzionale)">
+      </label>
+    </div>
+
+    <div class="options-row">
+      <label class="checkbox-label">
+        <input id="no-repeat" type="checkbox" checked>
+        Non ripetere numeri già estratti
+      </label>
+
+      <div class="stats-badge" id="stats-badge">
+        Disponibili: <strong id="pool-count">-</strong>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-draw" id="draw" type="button">🎲 Estrai Numeri</button>
+      <button class="btn-reset" id="reset" type="button" title="Ripristina l'estrazione">🔄 Reset</button>
+    </div>
+
+    <p class="status" id="status" role="alert"></p>
+
+    <div class="section-title">Ultimi estratti</div>
+    <section class="results" id="results" aria-live="polite">
+      <div style="grid-column: 1 / -1; color: rgba(255,255,255,0.3); font-size: 0.9rem; padding: 10px 0;">
+        Premi "Estrai Numeri" per iniziare.
+      </div>
+    </section>
+
+    <div class="section-title">Numeri già estratti (<span id="history-count">0</span>)</div>
+    <div class="history-container">
+      <div class="history-chips" id="history-chips">
+        <span class="empty-history">Nessun numero ancora estratto.</span>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Riferimenti agli elementi DOM
+    const minInput = document.querySelector("#range-min");
+    const maxInput = document.querySelector("#range-max");
+    const quantInput = document.querySelector("#quantity");
+    const excludedInput = document.querySelector("#excluded-input");
+    const noRepeatCheckbox = document.querySelector("#no-repeat");
+    const poolCountEl = document.querySelector("#pool-count");
+    const historyCountEl = document.querySelector("#history-count");
+    const drawButton = document.querySelector("#draw");
+    const resetButton = document.querySelector("#reset");
+    const statusEl = document.querySelector("#status");
+    const resultsContainer = document.querySelector("#results");
+    const historyContainer = document.querySelector("#history-chips");
+
+    // Stato dell'applicazione
+    let availablePool = [];
+    let extractedHistory = [];
+    let lastConfigHash = "";
+
+    // Funzione per interpretare i numeri da escludere
+    function parseExcluded(text) {
+      const excluded = new Set();
+      if (!text || !text.trim()) return excluded;
+
+      const tokens = text.split(/[,;\s]+/);
+      for (const token of tokens) {
+        if (!token.trim()) continue;
+
+        // Supporto per range come "20-25"
+        if (token.includes("-")) {
+          const parts = token.split("-");
+          if (parts.length === 2) {
+            const start = parseInt(parts[0], 10);
+            const end = parseInt(parts[1], 10);
+            if (!isNaN(start) && !isNaN(end)) {
+              const lower = Math.min(start, end);
+              const upper = Math.max(start, end);
+              for (let i = lower; i <= upper; i++) {
+                excluded.add(i);
+              }
+              continue;
+            }
+          }
+        }
+
+        const num = parseInt(token, 10);
+        if (!isNaN(num)) {
+          excluded.add(num);
+        }
+      }
+      return excluded;
+    }
+
+    // Calcola l'hash della configurazione attuale per rilevare cambiamenti
+    function getConfigHash() {
+      return `${minInput.value}_${maxInput.value}_${excludedInput.value.trim()}_${noRepeatCheckbox.checked}`;
+    }
+
+    // Inizializza il pool dei numeri disponibili
+    function initPool() {
+      const min = parseInt(minInput.value, 10);
+      const max = parseInt(maxInput.value, 10);
+
+      if (isNaN(min) || isNaN(max)) {
+        statusEl.className = "status";
+        statusEl.textContent = "Inserisci valori numerici validi per Min e Max.";
+        poolCountEl.textContent = "0";
+        availablePool = [];
+        return false;
+      }
+
+      if (min > max) {
+        statusEl.className = "status";
+        statusEl.textContent = "Il valore 'Min' non può essere maggiore di 'Max'.";
+        poolCountEl.textContent = "0";
+        availablePool = [];
+        return false;
+      }
+
+      const totalItems = max - min + 1;
+      if (totalItems > 100000) {
+        statusEl.className = "status";
+        statusEl.textContent = "Intervallo troppo ampio (massimo 100.000 numeri).";
+        return false;
+      }
+
+      const excluded = parseExcluded(excludedInput.value);
+      availablePool = [];
+
+      for (let i = min; i <= max; i++) {
+        if (!excluded.has(i)) {
+          availablePool.push(i);
+        }
+      }
+
+      poolCountEl.textContent = availablePool.length;
+      lastConfigHash = getConfigHash();
+      return true;
+    }
+
+    // Reset completo
+    function resetAll(keepNotice = false) {
+      extractedHistory = [];
+      const ok = initPool();
+      if (!ok) return;
+
+      if (!keepNotice) {
+        statusEl.className = "status info";
+        statusEl.textContent = "Sessione resettata. Tutti i numeri sono tornati disponibili.";
+      }
+      resultsContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; color: rgba(255,255,255,0.3); font-size: 0.9rem; padding: 10px 0;">
+          Pronto per una nuova estrazione.
+        </div>`;
+      updateHistoryUI();
+    }
+
+    // Aggiorna la vista dello storico dei numeri estratti
+    function updateHistoryUI() {
+      historyCountEl.textContent = extractedHistory.length;
+      if (extractedHistory.length === 0) {
+        historyContainer.innerHTML = '<span class="empty-history">Nessun numero ancora estratto.</span>';
+        return;
+      }
+
+      historyContainer.innerHTML = extractedHistory
+        .map(num => `<span class="history-chip">${num}</span>`)
+        .join("");
+    }
+
+    // Funzione principale di estrazione
+    function drawNumbers() {
+      statusEl.textContent = "";
+
+      // Se la configurazione dell'intervallo o delle esclusioni è cambiata, reinizializziamo
+      if (getConfigHash() !== lastConfigHash) {
+        extractedHistory = [];
+        if (!initPool()) return;
+        updateHistoryUI();
+      }
+
+      const quant = parseInt(quantInput.value, 10);
+      if (isNaN(quant) || quant < 1) {
+        statusEl.className = "status";
+        statusEl.textContent = "Inserisci una quantità da estrarre valida (almeno 1).";
+        return;
+      }
+
+      const noRepeat = noRepeatCheckbox.checked;
+
+      // Se non c'è ripetizione controlliamo il pool residuo
+      if (noRepeat) {
+        if (availablePool.length === 0) {
+          statusEl.className = "status";
+          statusEl.textContent = "Tutti i numeri disponibili sono già stati estratti! Premi Reset per ricominciare.";
+          return;
+        }
+
+        const countToExtract = Math.min(quant, availablePool.length);
+        if (quant > availablePool.length) {
+          statusEl.className = "status info";
+          statusEl.textContent = `Erano rimasti solo ${availablePool.length} numeri disponibili. Estratti tutti!`;
+        }
+
+        const currentDraw = [];
+        for (let i = 0; i < countToExtract; i++) {
+          const randomIndex = Math.floor(Math.random() * availablePool.length);
+          const chosen = availablePool.splice(randomIndex, 1)[0];
+          currentDraw.push(chosen);
+          extractedHistory.push(chosen);
+        }
+
+        poolCountEl.textContent = availablePool.length;
+        renderResults(currentDraw);
+        updateHistoryUI();
+
+      } else {
+        // Modalità con ripetizione libera (ogni estrazione può pescare da tutti i numeri validi)
+        const min = parseInt(minInput.value, 10);
+        const max = parseInt(maxInput.value, 10);
+        const excluded = parseExcluded(excludedInput.value);
+        const fullValidList = [];
+
+        for (let i = min; i <= max; i++) {
+          if (!excluded.has(i)) fullValidList.push(i);
+        }
+
+        if (fullValidList.length === 0) {
+          statusEl.className = "status";
+          statusEl.textContent = "Nessun numero disponibile con queste impostazioni ed esclusioni.";
+          return;
+        }
+
+        const currentDraw = [];
+        for (let i = 0; i < quant; i++) {
+          const rand = fullValidList[Math.floor(Math.random() * fullValidList.length)];
+          currentDraw.push(rand);
+          extractedHistory.push(rand);
+        }
+
+        renderResults(currentDraw);
+        updateHistoryUI();
+      }
+    }
+
+    // Rendering dei numeri con animazione a cascata
+    function renderResults(numbers) {
+      resultsContainer.replaceChildren(
+        ...numbers.map((number, index) => {
+          const tile = document.createElement("div");
+          tile.className = "number";
+          tile.textContent = number;
+          tile.style.animationDelay = `${index * 40}ms`;
+          return tile;
+        })
+      );
+    }
+
+    // Event Listeners
+    drawButton.addEventListener("click", drawNumbers);
+    resetButton.addEventListener("click", () => resetAll(false));
+
+    [minInput, maxInput, excludedInput].forEach(input => {
+      input.addEventListener("input", () => {
+        initPool();
+      });
+    });
+
+    noRepeatCheckbox.addEventListener("change", () => {
+      resetAll(false);
+    });
+
+    [minInput, maxInput, quantInput, excludedInput].forEach(input => {
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") drawNumbers();
+      });
+    });
+
+    // Avvio iniziale
+    initPool();
+    updateHistoryUI();
+  </script>
+</body>
+</html>
