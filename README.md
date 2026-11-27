@@ -21,4 +21,4 @@ Applicazione web moderna, leggera e senza dipendenze per l'estrazione di numeri 
    - **Source**: `Deploy from a branch`
    - **Branch**: `main` (o `master`) e cartella `/ (root)`
 5. Clicca **Save**. Entro 1 minuto il tuo sito sarà online gratuitamente all'indirizzo:
-   `https://<tuo-username>.github.io/estrattore-numeri/`
+   `https://pisans-it.github.io/estrattore-numeri/`, questo è il link per accedere all'estrattore numeri
